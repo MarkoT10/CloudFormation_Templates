@@ -1,4 +1,4 @@
-#CloudFormation templates to deploy an EC2 instance with the latest Ubuntu image
+### CloudFormation templates to deploy an EC2 instance with the latest Ubuntu image
 
 ## Primary CF for creating an AWS Lambda together with an IAM Role.
 
