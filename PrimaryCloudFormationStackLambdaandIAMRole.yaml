@@ -1,0 +1,63 @@
+---
+# CloudFormation template format version
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  # Defining an IAM role for the Lambda function
+  EC2ReadOnlyAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # Policy for the role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: ['sts:AssumeRole']
+          Principal:
+            Service: ['lambda.amazonaws.com']
+      Policies:
+        - PolicyName: EC2ReadOnlyAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              # Allowing EC2 DescribeImages action
+              Action: ['ec2:DescribeImages']
+              Resource: '*'
+
+  # Lambda function
+  LatestAmiLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: LatestAmiLambdaFunction
+      # Lambda function code
+      Code:
+        ZipFile: |
+          import boto3
+          
+          def lambda_handler(event, context):
+              ec2 = boto3.client('ec2')
+              response = ec2.describe_images(
+                  Owners=['amazon'],
+                  Filters=[
+                      {
+                          'Name': 'architecture',
+                          'Values': ['x86_64']
+                      },
+                      {
+                          'Name': 'name',
+                          'Values': ['ubuntu/images/hvm-ssd/ubuntu-*-20*']
+                      }
+                  ]
+              )
+              images = response['Images']
+              latest_ami = max(images, key=lambda x: x['CreationDate'])
+              return latest_ami['ImageId']
+      
+      Handler: index.lambda_handler
+      # IAM role to the Lambda function
+      Role: !GetAtt EC2ReadOnlyAccessRole.Arn
+      Runtime: python3.8
+
+
+

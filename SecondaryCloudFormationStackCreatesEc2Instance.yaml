@@ -1,0 +1,49 @@
+---
+# Specifying the CloudFormation template format version
+AWSTemplateFormatVersion: '2010-09-09'
+
+# Linking to the previous CloudFormation template
+Transform: AWS::Serverless-2016-10-31
+
+# Importing the latest AMI Id as a variable
+Parameters:
+  LatestAmiId:
+    Type: 'AWS::CloudFormation::ImportValue'
+    Description: The Id of the latest Amazon Machine Image
+    Value: !ImportValue LatestAmiLambdaFunction-LatestAmiId
+
+Resources:
+  # Creating an EC2 instance
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      # Using the latest AMI Id
+      ImageId: !Ref LatestAmiId
+      InstanceType: t2.micro
+      KeyName: my-key-pair
+      SecurityGroups:
+        - !Ref EC2InstanceSecurityGroup
+      
+  # Defining a security group for the EC2 instance
+  EC2InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security group for the EC2 instance
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+# Defining a custom resource to store the latest AMI Id
+LatestAmiId:
+  Type: Custom::LatestAmiId
+  Properties:
+    ServiceToken: !GetAtt LatestAmiLambdaFunction.Arn
+    FunctionName: LatestAmiLambdaFunction
+
+Outputs:
+  # Exporting the latest AMI Id as an output
+  LatestAmiId:
+    Value: !Ref LatestAmiId
+
